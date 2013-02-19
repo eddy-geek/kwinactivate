@@ -8,7 +8,16 @@
 // http://quickgit.kde.org/?p=kdeexamples.git&a=blob&f=plasma%2Fjavascript%2Fgeneric%2FfileOperations%2Fmetadata.desktop
 // http://kde-look.org/index.php?xcontentmode=91
 
+
+/* Object structure
+ * windowGroups: Map<String name, WindowGroup>
+ * windowGroupHotkeys: Map<String name, String hotkey>
+ * WindowGroup extends Array<WindowType> { boolean matchAny(client) }
+ * WindowType{ classname: RegExp; title: RegExp; boolean match(client); }
+ */
+
 var windowGroups = new Object();
+var windowGroupHotkeys = new Object();
 
 function WindowType(classname, title) {
   this.classname = classname;
@@ -16,7 +25,7 @@ function WindowType(classname, title) {
 }
 
 
-WindowType.prototype["match"]  = function(client) {
+WindowType.prototype["match"] = function(client) {
   print("==> testing "+this.title+" === "+client.caption
   + " "+(this.title == null || this.title.test(client.caption))
   + " and "+this.classname+" === "+client.resourceClass.toString()
@@ -50,12 +59,6 @@ function add2windowgroup(group, classname, title) {
   windowGroups[group].push( new WindowType(classname, title) );
 }
 
-var knownGroups="";
-for (kGroup in windowGroups) { knownGroups += kGroup; }
-print(knownGroups);
-print(workspace.workspaceWidth);
-print(workspace.activeClient);
-
 var search = false;
 
 /** Returns whether given client matched. */
@@ -68,7 +71,7 @@ function kwinactivateclient(client,targetGroupName) {
       group = windowGroups[targetGroupName];
       if (group === undefined) {
 	var knownGroups="";
-	for (kGroup in windowGroups) { knownGroups += kGroup; }
+	for (kGroup in windowGroups) { knownGroups += " "+kGroup; }
 	print("Unknow window group name: "+targetGroupName)
 	print("Register it with add2windowgroup or try with these known groups: "+knownGroups);
       } else {
@@ -89,8 +92,9 @@ function kwinactivate(targetGroupName) {
   search = false;
   var found = false;
   var cL = workspace.clientList();
-  //call twice to make sure we get through thw whole window list while "search" is true
+  //call twice to make sure we get through the whole window list while "search" is true
   cL.concat(cL).forEach(function(client) {
+    if (client == undefined) continue;
     if (!found) { found = kwinactivateclient(client,targetGroupName); }
   });
   return found;
@@ -105,10 +109,10 @@ function launch(launcher) {
 
   //works: callDBus("org.kde.kwin", "/KWin", "org.kde.KWin", "setCurrentDesktop", 2);
   //qdbus org.kde.kwin /KWin org.kde.KWin.currentDesktop
-  callDBus("org.kde.kwin", "/KWin", "org.kde.KWin", "currentDesktop", function (desktop) {
-    print("Current Desktop through D-Bus: ", desktop);
-  });
-  callDBus("org.kde.krunner","/App","org.kde.krunner.App","query",launcher);
+  //callDBus("org.kde.kwin", "/KWin", "org.kde.KWin", "currentDesktop", function (desktop) {
+  //  print("Current Desktop through D-Bus: ", desktop);
+  //});
+  // show krunner and fill it with the right content: callDBus("org.kde.krunner","/App","org.kde.krunner.App","query",launcher);
   
   //qdbus org.kde.klauncher /KLauncher org.kde.KLauncher.start_service_by_desktop_path /usr/share/applications/chromium-browser.desktop "http://google.fr" "" "" true
   callDBus("org.kde.klauncher","/KLauncher","org.kde.klauncher","start_service_by_desktop_path","/usr/share/applications/chromium-browser.desktop", "http://google.fr", "", "", "true", function() {
@@ -133,6 +137,7 @@ function register(shortcut, targetGroupName, launcher) {
       launch(launcher);
     }
   });
+  windowGroupHotkeys[targetGroupName] = shortcut;
 }
 
 /** launcher = null for no value ; classname|title=null for "everything" */
@@ -153,29 +158,22 @@ function registerBoth(shortcut, targetGroupName) {
   }
 }
 
+/** Change client's caption to indicate the shortcut that can be used to access it
+ * Does not work as of 4.10 because Client.caption is read-only. */
 function tagClient(client) {
-//  for (...) { TODO
-//    if (...) {
-      shortcut = "Meta...";
-      client.caption += " {"+shortcut+"}";
-//    }
-//  }
+  print("Tagging client: id="+client.windowId+" ; caption="+client.caption+"; resourceClass="+client.resourceClass);
+  for (someGroup in windowGroups) {
+    if (windowGroups[someGroup].matchAny(client)) {
+      shortcut = windowGroupHotkeys[someGroup]; // "Meta+...";
+      print("Tag success with "+someGroup+" {"+shortcut+"}");
+      if (shortcut != undefined) {
+        client.caption += " {"+shortcut+"}";
+      }
+    }
+  }
 }
 
-workspace.clientAdded.connect(function(client) {
-  print(client.windowId+" "+client.caption);
-  //TODO change client's caption to indicate the shortcut that can be used to access it
-  //something like for (group in windowGroups) if (group.matchAny(client) ...)
-  // this requires getting rid of the global "search" variable
-});
-
-workspace.clientList().forEach(function(client) {
-  print(client.caption+"\t\t"+client.resourceClass);
-  if (! /.+{(Meta|Control|Alt+[-}]}$)/.test(client.caption)) {
-    tagClient(client);
-  }
-});
-
+workspace.clientAdded.connect(tagClient);
 
 add2windowgroup("browser",  /chromium-browser/);
 add2windowgroup("browser",  /firefox/);
@@ -183,6 +181,7 @@ add2windowgroup("browser",  /opera/);
 add2windowgroup("console",  /konsole/);
 add2windowgroup("desktop",  /plasma(|-desktop)/, /plasma-desktop/);
 add2windowgroup("editor",   /kate/);
+add2windowgroup("explorer", /dolphin/);
 add2windowgroup("devjava",  /eclipse/);
 add2windowgroup("devkde",   /kdevelop/);
 add2windowgroup("devkde",   /plasma(|-desktop)/, /Desktop Shell Scripting Console . Plasma Desktop Shell/);
@@ -202,7 +201,7 @@ add2windowgroup("math",     /libreoffice-math/);
 
 registerBoth("Meta+F", "browser",  "chromium-browser");
 registerBoth("Meta+Z", "console",  "konsole");
-//register    ("Meta+D", "desktop");
+//register    ("Meta+D", "desktop"); => See below
 registerBoth("Meta+J", "devjava",  "eclipse");
 registerBoth("Meta+Y", "devkde",   "kdevelop");
 registerBoth("Meta+E", "explorer", "dolphin");
@@ -220,11 +219,26 @@ registerShortcut("Toggle desktop", "", "Meta+D", function() {
   workspace.slotToggleShowDesktop();
 });
 
-launch("konsole");
+/* Does not work as of 4.10 because Client.caption is read-only. */
+workspace.clientList().forEach(function(client) {
+  if (client == undefined) continue;
+  if (! /.+{(Meta|Control|Alt\+[-}]}$)/.test(client.caption)) {
+    tagClient(client);
+  }
+});
+
+
+var knownGroups="";
+for (kGroup in windowGroups) { knownGroups += " "+kGroup; }
+print("+++ Known groups: "+knownGroups);
+
+//print("active is "+workspace.activeClient+" "+workspace.activeClient.caption);
+//workspace.activeClient.caption = "Hahahahaha !!!"
+
+//launch("konsole");
 
 //workspace.slotToggleShowDesktop();
 kwinactivate("browser");
 
 print(""); print("");
 kwinactivate("devkde");
-
