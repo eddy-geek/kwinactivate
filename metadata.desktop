@@ -1,0 +1,19 @@
+[Desktop Entry]
+Comment=Cycle through windows with hotkeys and launch apps
+Encoding=UTF-8
+Icon=dashboard-show
+Keywords=
+Name=KwinActivate
+Type=Service
+X-KDE-ParentApp=
+X-KDE-PluginInfo-Author=Edward Oubrayrie
+X-KDE-PluginInfo-Category=Miscellaneous
+X-KDE-PluginInfo-Depends=
+X-KDE-PluginInfo-Email=e6war6@gmail.com
+X-KDE-PluginInfo-License=GPL
+X-KDE-PluginInfo-Name=kwinactivate
+X-KDE-PluginInfo-Version=1.0
+X-KDE-PluginInfo-Website=
+X-KDE-ServiceTypes=KWin/Script
+X-Plasma-API=javascript
+
