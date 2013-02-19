@@ -208,10 +208,11 @@ registerBoth("Meta+E", "explorer", "dolphin");
 registerBoth("Meta+N", "editor",   "kate");
 registerBoth("Meta+/", "music",    "amarok"); //vlc ?
 registerBoth("Meta+S", "settings", "systemsettings");
+registerBoth("Meta+V", "virtual",  "virtualbox");
 registerBoth("Meta+W", "writer",   "libreoffice --writer");
 registerBoth("Meta+X", "calc",     "libreoffice --calc");
 registerBoth("Meta+P", "present",  "libreoffice --impress");
-registerBoth("Meta+P", "draw",     "libreoffice --draw");
+registerBoth("Meta+R", "draw",     "libreoffice --draw");
 registerBoth("Meta+B", "base",     "libreoffice --base");
 registerBoth("Meta+M", "math",     "libreoffice --math");
 
