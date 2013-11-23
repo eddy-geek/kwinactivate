@@ -1,3 +1,4 @@
+
 // qdbus org.kde.plasma-desktop /MainApplication showInteractiveKWinConsole
 // plasmapkg -t kwinscript -l
 // ls ~/.kde/share/apps/kwin/scripts
@@ -26,10 +27,10 @@ function WindowType(classname, title) {
 
 
 WindowType.prototype["match"] = function(client) {
-  print("==> testing "+this.title+" === "+client.caption
-  + " "+(this.title == null || this.title.test(client.caption))
-  + " and "+this.classname+" === "+client.resourceClass.toString()
-  + " "+(this.classname == null || this.classname.test(client.resourceClass.toString())));
+  //print("==> testing "+this.title+" === "+client.caption
+  //+ " "+(this.title == null || this.title.test(client.caption))
+  //+ " and "+this.classname+" === "+client.resourceClass.toString()
+  //+ " "+(this.classname == null || this.classname.test(client.resourceClass.toString())));
   return ((this.title == null || this.title.test(client.caption)) &&
     (this.classname == null || this.classname.test(client.resourceClass.toString())));
 }
@@ -138,12 +139,16 @@ function register(shortcut, targetGroupName, launcher) {
     }
   });
   windowGroupHotkeys[targetGroupName] = shortcut;
-}
+}  
+  
 
 /** launcher = null for no value ; classname|title=null for "everything" */
 function registerBoth(shortcut, targetGroupName, launcher) {
+  print("________________"+launcher);
   register(shortcut, targetGroupName, launcher);
+  print("________________"+launcher);
   if (launcher != undefined) {
+    print("_________Launch "+(launcher===undefined?title:classname)+"   >> Shift"+shortcut);
     registerShortcut("Launch "+(launcher===undefined?title:classname), "", "Shift"+shortcut, function() {
       launch(launcher);
     });
@@ -155,6 +160,8 @@ function registerBoth(shortcut, targetGroupName) {
   launcher = undefined;
   if (group != undefined && group[0] != undefined && group[0].classname != null) {
     register(shortcut, targetGroupName, group[0].classname.source);
+  } else {
+    print("Could not find launcher, searched in '"+group+"'");
   }
 }
 
@@ -165,7 +172,7 @@ function tagClient(client) {
   for (someGroup in windowGroups) {
     if (windowGroups[someGroup].matchAny(client)) {
       shortcut = windowGroupHotkeys[someGroup]; // "Meta+...";
-      print("Tag success with "+someGroup+" {"+shortcut+"}");
+      //print("Tag success with "+someGroup+" {"+shortcut+"}");
       if (shortcut != undefined) {
         client.caption += " {"+shortcut+"}";
       }
@@ -183,9 +190,11 @@ add2windowgroup("desktop",  /plasma(|-desktop)/, /plasma-desktop/);
 add2windowgroup("editor",   /kate/);
 add2windowgroup("explorer", /dolphin/);
 add2windowgroup("devjava",  /eclipse/);
-add2windowgroup("devkde",   /kdevelop/);
-add2windowgroup("devkde",   /plasma(|-desktop)/, /Desktop Shell Scripting Console . Plasma Desktop Shell/);
-add2windowgroup("devkde",   /plasmate/);
+add2windowgroup("devjava",  /.*jetbrains.*/); //intellij IDEA, jetbrains-pycharm, ...
+//add2windowgroup("devjava",  /jetbrains-pycharm/); //temporary
+add2windowgroup("devlinux", /kdevelop/);
+add2windowgroup("devlinux", /plasma(|-desktop)/, /plasma-desktop|Desktop Shell Scripting Console – Plasma Desktop Shell/); //FIXME
+add2windowgroup("devlinux", /plasmate/);
 add2windowgroup("music",    /amarok/);
 add2windowgroup("music",    /vlc/);
 add2windowgroup("settings", /systemsettings/);
@@ -195,18 +204,19 @@ add2windowgroup("virtual",  /wine/, /.*TeamViewer.*/);
 add2windowgroup("writer",   /libreoffice-writer/);
 add2windowgroup("calc",     /libreoffice-calc/);
 add2windowgroup("present",  /libreoffice-impress/);
+add2windowgroup("present",  /okular/); //PDFs
 add2windowgroup("draw",     /libreoffice-draw/);
 add2windowgroup("base",     /libreoffice-base/);
 add2windowgroup("math",     /libreoffice-math/);
 
-registerBoth("Meta+F", "browser",  "chromium-browser");
+registerBoth("Meta+F", "browser",  "firefox");
 registerBoth("Meta+Z", "console",  "konsole");
 //register    ("Meta+D", "desktop"); => See below
-registerBoth("Meta+J", "devjava",  "eclipse");
-registerBoth("Meta+Y", "devkde",   "kdevelop");
+registerBoth("Meta+J", "devjava",  "dolphin");
+registerBoth("Meta+Y", "devlinux", "kdevelop"); //like cYgwin under windows
 registerBoth("Meta+E", "explorer", "dolphin");
 registerBoth("Meta+N", "editor",   "kate");
-registerBoth("Meta+/", "music",    "amarok"); //vlc ?
+registerBoth("Meta+/", "music",    "amarok"); //TODO vlc ?
 registerBoth("Meta+S", "settings", "systemsettings");
 registerBoth("Meta+V", "virtual",  "virtualbox");
 registerBoth("Meta+W", "writer",   "libreoffice --writer");
@@ -219,6 +229,43 @@ registerBoth("Meta+M", "math",     "libreoffice --math");
 registerShortcut("Toggle desktop", "", "Meta+D", function() {
   workspace.slotToggleShowDesktop();
 });
+
+//registerShortcut("Middle-click", "Simulate mouse middle-click", "F1", function() {
+  //sh -c 'xsel | xvkbd -xsendevent -file - 2>/dev/null'
+  //sh -c 'xdotool type "`xsel`"'
+  //>>> qdbus org.kde.klauncher /KLauncher org.kde.KLauncher.exec_blind "sh -c 'xdotool type \"`xsel`\"'"
+  //1) try with dbus-send convert from a) format to b) format:
+  //   qdbus org.kde.kglobalaccel /kglobalaccel org.kde.KGlobalAccel.action ...
+  //   dbus-send /modules/kdedglobalaccel org.kde.KdedGlobalAccel.invokeAction array:string:"kwin","Snow","KWin","Snow" int64:9999999
+  //2) use dbus-monitor
+
+//});
+
+// q w e r t y u i o p
+//   ^ ^ ^ ^ ^ ^ ^    ↖ Presenter
+//   | | | | |   ʟ ?   ?
+//   | | | | cYgwin [win-only]
+//   | | | Test tool
+//   | | dRaw
+//   | Explorer
+//   Word processor
+// a s d f g h j k l
+//   ^ ^ ^ ^   ^ ^  ↖ LateX
+//   | | | |   | devlinux
+//   | | | |   devJava
+//   | | internet (x2)
+//   | Desktop
+//   Settings
+// z x c v b n m , . /
+// ^ ^ ^ ^   ^ ↑      ↖ Music !
+// | | | |   | Mail/Messenger
+// | | | |   Notepad
+// | | | Virtual
+// | | Calc [TODO]
+// | eXcel
+// ʟ console
+
+//[TODO Q U I O  A H  B]
 
 /* Does not work as of 4.10 because Client.caption is read-only. */
 workspace.clientList().forEach(function(client) {
@@ -239,7 +286,7 @@ print("+++ Known groups: "+knownGroups);
 //launch("konsole");
 
 //workspace.slotToggleShowDesktop();
-kwinactivate("browser");
+//kwinactivate("browser");
 
-print(""); print("");
-kwinactivate("devkde");
+//print(""); print("");
+//kwinactivate("devlinux");

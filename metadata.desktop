@@ -16,4 +16,5 @@ X-KDE-PluginInfo-Version=1.0
 X-KDE-PluginInfo-Website=
 X-KDE-ServiceTypes=KWin/Script
 X-Plasma-API=javascript
-
+X-Plasma-MainScript=winactivate.kwinscript
+X-KWin-Exclude-Listing=false

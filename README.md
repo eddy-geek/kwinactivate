@@ -27,5 +27,5 @@ This defines a new group "virtual" which matches 2 types of window:
 
 The hotkey Win+V is then registered for:
   - cycling through matching windows if there are any
-  - launching program **virtualbox* otherwise
+  - launching program **virtualbox** otherwise
 
